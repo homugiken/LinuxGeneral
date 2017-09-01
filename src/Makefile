@@ -1,5 +1,5 @@
 CC = gcc
-TARGET = simlinux
+TARGET = main
 SOURCE = $(wildcard *.c)
 OBJECT = $(SOURCE:.c=.o)
 
