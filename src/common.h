@@ -6,6 +6,7 @@
 #define __COMMON_H__
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <fcntl.h>
@@ -16,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <linux/input.h>
 
 #define DEBUG_ALL					1
 
