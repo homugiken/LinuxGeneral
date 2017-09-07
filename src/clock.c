@@ -346,12 +346,12 @@ void clock_test (void)
 		}
 	}
 
-	ca.tv_sec = 0;
-	ca.tv_nsec = -(NSEC_PER_SEC / 10);
-	cb.tv_sec = -1;
-	cb.tv_nsec = -(NSEC_PER_SEC / 2);
-	step.tv_sec = 0;
-	step.tv_nsec = NSEC_PER_SEC / 2;
+	ca.tv_sec	= 0;
+	ca.tv_nsec	= -(NSEC_PER_SEC / 10);
+	cb.tv_sec	= -1;
+	cb.tv_nsec	= -(NSEC_PER_SEC / 2);
+	step.tv_sec	= 0;
+	step.tv_nsec	= NSEC_PER_SEC / 2;
 	for (i = 0; i < 10; i++) {
 		ret = clock_add(&cb, &step, &result);
 		if (ret != 0) {

@@ -22,6 +22,16 @@
 #define INPUT_KEY_PRESSED				1
 #define INPUT_KEY_REPEATED				2
 
+#define BITFIELD uint32_t
+static __inline__ int test_bit(int nr, BITFIELD * addr)
+{
+	BITFIELD mask;
+
+	addr += nr >> 5;
+	mask = 1 << (nr & 0x1f);
+	return ((mask & *addr) != 0);
+}
+
 typedef struct input_event inputevent;
 
 int input_open (const char * const name);
