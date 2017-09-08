@@ -5,23 +5,6 @@
 #include "input_event.h"
 #include "clock.h"
 
-static char * event_name[EV_MAX + 1] =
-{
-	[0 ... EV_MAX]	= NULL,
-	[EV_SYN]	= "EV_SYN",
-	[EV_KEY]	= "EV_KEY",
-	[EV_REL]	= "EV_REL",
-	[EV_ABS]	= "EV_ABS",
-	[EV_MSC]	= "EV_MSC",
-	[EV_SW]		= "EV_SW",
-	[EV_LED]	= "EV_LED",
-	[EV_SND]	= "EV_SND",
-	[EV_REP]	= "EV_REP",
-	[EV_FF]		= "EV_FF",
-	[EV_PWR]	= "EV_PWR",
-	[EV_FF_STATUS]	= "EV_FF_STATUS"
-};
-
 static char * syn_name[SYN_MAX + 1] =
 {
 	[0 ... SYN_MAX]	= NULL,
@@ -139,7 +122,6 @@ static char * led_name[LED_MAX + 1] =
 	[LED_MAIL]	= "LED_MAIL",
 	[LED_CHARGING]	= "LED_CHARGING"
 };
-
 
 static char * rep_name[REP_MAX + 1] =
 {
@@ -720,7 +702,8 @@ static char * key_name[KEY_MAX + 1] =
 	[KEY_MIN_INTERESTING]		= "KEY_MIN_INTERESTING"
 };
 
-char ** event_code_name[EV_MAX + 1] = {
+static char ** event_code_name[EV_MAX + 1] =
+{
 	[0 ... EV_MAX] = NULL,
 	[EV_SYN] = syn_name,
 	[EV_KEY] = key_name,
@@ -732,14 +715,37 @@ char ** event_code_name[EV_MAX + 1] = {
 	[EV_REP] = rep_name
 };
 
+static char * event_name[EV_MAX + 1] =
+{
+	[0 ... EV_MAX]	= NULL,
+	[EV_SYN]	= "EV_SYN",
+	[EV_KEY]	= "EV_KEY",
+	[EV_REL]	= "EV_REL",
+	[EV_ABS]	= "EV_ABS",
+	[EV_MSC]	= "EV_MSC",
+	[EV_SW]		= "EV_SW",
+	[EV_LED]	= "EV_LED",
+	[EV_SND]	= "EV_SND",
+	[EV_REP]	= "EV_REP",
+	[EV_FF]		= "EV_FF",
+	[EV_PWR]	= "EV_PWR",
+	[EV_FF_STATUS]	= "EV_FF_STATUS"
+};
+
 /*==============================================================================
  * input_event_open()
  * Open input event.
+ * Return 0 when success. Return -1 when error.
  *----------------------------------------------------------------------------*/
 int input_event_open (const char * const name, int * const fd)
 {
 	int ret = -1;
 	char path[INPUT_EVENT_PATH_LENGTH];
+
+	if (fd == NULL) {
+		INPTD("parameter error\n");
+		goto exit;
+	}
 
 	if (name != NULL) {
 		if (strcpy(path, name) != path) {
@@ -763,7 +769,7 @@ int input_event_open (const char * const name, int * const fd)
 	}
 	else {
 		*fd = ret;
-		printf("open %s fd=%d\n", path, *fd);
+		INPTD("open %s fd=%d\n", path, *fd);
 	}
 
 exit:
@@ -774,10 +780,15 @@ exit:
 /*==============================================================================
  * input_event_close()
  * Close input event.
+ * Return 0 when success. Return -1 when error.
  *----------------------------------------------------------------------------*/
 int input_event_close (const int fd)
 {
-	int ret;
+	int ret = -1;
+
+	if (fd < 0) {
+		goto exit;
+	}
 
 	ret = close(fd);
 	if (ret < 0) {
@@ -787,26 +798,43 @@ int input_event_close (const int fd)
 		INPTD("close success fd=%d\n", fd);
 	}
 
+exit:
 	return (ret);
 }
 /*----------------------------------------------------------------------------*/
 
 /*==============================================================================
  * input_event_read()
+ * Read input event data.
  * Return number of bytes read. Return -1 when error.
  *----------------------------------------------------------------------------*/
 int input_event_read (const int fd, inputevent * const input)
 {
-	int ret;
+	int ret = -1;
+
+	if ((fd < 0) || (input == NULL)) {
+		goto exit;
+	}
 
 	ret = read(fd, input, sizeof (inputevent));
 	if (ret < 0) {
 		INPTD("read error ret=%d\n", ret);
 	}
 
+exit:
 	return (ret);
 }
 /*----------------------------------------------------------------------------*/
+
+#define BITFIELD uint32_t
+static __inline__ int test_bit(int nr, BITFIELD * addr)
+{
+	BITFIELD mask;
+
+	addr += nr >> 5;
+	mask = 1 << (nr & 0x1f);
+	return ((mask & *addr) != 0);
+}
 
 /*==============================================================================
  * input_event_device_dump()
@@ -821,25 +849,24 @@ void input_event_device_dump (const int fd)
 	int ret;
 	int version;
 
-	printf("\ndevice information:\n");
+	if (fd < 0) {
+		return;
+	}
 
+	printf("\ndevice information:\n");
 	if (ioctl(fd, EVIOCGVERSION, &version) >= 0) {
 		printf("EVIOCGVERSION:\t0x%04X\n", version);
 	}
-
 	if (ioctl(fd, EVIOCGID, &id) >= 0) {
 		printf("EVIOCGID:\tbustype=0x%04x vendor=0x%04x product=0x%04x version=0x%04x\n",
 		       id.bustype, id.vendor, id.product, id.version);
 	}
-
 	if (ioctl(fd, EVIOCGNAME(sizeof (buf)), buf) >= 0) {
 		printf("EVIOCGNAME:\t%s\n", buf);
 	}
-
 	if (ioctl(fd, EVIOCGPHYS(sizeof (buf)), buf) >= 0) {
 		printf("EVIOCGPHYS:\t%s\n", buf);
 	}
-
 	ret = ioctl(fd, EVIOCGBIT(0, sizeof (bits)), bits);
 	if (ret >= 0) {
 		printf("EVIOCGBIT:\n");
@@ -855,7 +882,8 @@ void input_event_device_dump (const int fd)
 
 /*==============================================================================
  * general_event_info()
- * Dump general event information.
+ * Print general event information.
+ * Return number of bytes read. Return -1 when error.
  *----------------------------------------------------------------------------*/
 static int general_event_info (const inputevent * const input, char * const info)
 {
@@ -895,7 +923,8 @@ exit:
 
 /*==============================================================================
  * key_event_info()
- * Dump key event information.
+ * Print key event information.
+ * Return number of bytes read. Return -1 when error.
  *----------------------------------------------------------------------------*/
 static int key_event_info (const inputevent * const input, char * const info)
 {
@@ -913,13 +942,13 @@ static int key_event_info (const inputevent * const input, char * const info)
 	}
 
 	switch (input->value) {
-	case (INPUT_KEY_RELEASED):
+	case (KEY_EVENT_RELEASED):
 		buf = " released";
 		break;
-	case (INPUT_KEY_PRESSED):
+	case (KEY_EVENT_PRESSED):
 		buf = " pressed";
 		break;
-	case (INPUT_KEY_REPEATED):
+	case (KEY_EVENT_REPEATED):
 		buf = " repeated";
 		break;
 	default:
@@ -939,7 +968,7 @@ exit:
  *----------------------------------------------------------------------------*/
 void input_event_dump (const inputevent * const input)
 {
-	char info[128];
+	char info[INPUT_EVENT_DUMP_LENGTH];
 	int ret = -1;
 
 	if (input == NULL) {
@@ -987,7 +1016,7 @@ void input_event_dump (const inputevent * const input)
 
 /*==============================================================================
  * input_event_test()
- * Dump input event information.
+ * Test input event.
  *----------------------------------------------------------------------------*/
 int input_event_test (void)
 {

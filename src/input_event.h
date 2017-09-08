@@ -20,19 +20,9 @@
 #define INPUT_EVENT_PATH_LENGTH				128
 #define INPUT_EVENT_DUMP_LENGTH				1024
 
-#define INPUT_KEY_RELEASED				0
-#define INPUT_KEY_PRESSED				1
-#define INPUT_KEY_REPEATED				2
-
-#define BITFIELD uint32_t
-static __inline__ int test_bit(int nr, BITFIELD * addr)
-{
-	BITFIELD mask;
-
-	addr += nr >> 5;
-	mask = 1 << (nr & 0x1f);
-	return ((mask & *addr) != 0);
-}
+#define KEY_EVENT_RELEASED				0
+#define KEY_EVENT_PRESSED				1
+#define KEY_EVENT_REPEATED				2
 
 typedef struct input_event inputevent;
 
