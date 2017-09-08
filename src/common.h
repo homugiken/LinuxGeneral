@@ -19,6 +19,8 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <linux/input.h>
+#include <linux/input-event-codes.h>
+
 
 #define DEBUG_ALL					1
 

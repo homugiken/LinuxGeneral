@@ -4,7 +4,7 @@
 
 #include "common.h"
 #include "clock.h"
-#include "input.h"
+#include "input_event.h"
 
 #define GENERAL_TEST_INDEX_CLOCK			'0'
 #define GENERAL_TEST_INDEX_INPUT			'a'
@@ -18,7 +18,7 @@ typedef struct GENERAL_TEST_OPTION
 static GENERAL_TEST_OPTION general_test_list[] =
 {
 	{GENERAL_TEST_INDEX_CLOCK, "clock test"},
-	{GENERAL_TEST_INDEX_INPUT, "input test"},
+	{GENERAL_TEST_INDEX_INPUT, "input event test"},
 	{'\0', NULL}
 };
 
@@ -47,7 +47,7 @@ int general_test (void)
 		clock_test();
 		break;
 	case (GENERAL_TEST_INDEX_INPUT):
-		ret = input_test();
+		ret = input_event_test();
 		break;
 	default:
 		printf("Invalid choice\n");
