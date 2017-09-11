@@ -273,33 +273,25 @@ static void clock_wait_test (void)
 }
 
 
-void clock_test (void)
+int clock_test (void)
 {
-	int ret;
-	int i;
-	clockspec ca;
-	clockspec cb;
-	clockspec clock;
-	clockspec step;
-	clockspec result;
-	clockspec wait;
-	int compare;
-
 	clock_test_load();
 
 	printf("clock test start\n");
 	clock_show();
 	clock_add_test();
 
-	return;
+	return (0);
 
 	clock_sub_test();
 	clock_cmp_test();
 	clock_wait_test();
 
 	printf("clock test done\n");
+
+	return (0);
 }
 #else
-void clock_test (void) {}
+int clock_test (void) { return (0);}
 #endif
 

@@ -44,6 +44,6 @@ int clock_sub (const clockspec * const clkA, const clockspec * const clkB, clock
 int clock_cmp (const clockspec * const clkA, const clockspec * const clkB, int * const compare);
 int clock_wait (const clockspec * const clkNow, const clockspec * const clkOld, const clockspec * const clkWait);
 void clock_show (void);
-void clock_test (void);
+int clock_test (void);
 
 #endif	/*__CLOCK_H__*/
