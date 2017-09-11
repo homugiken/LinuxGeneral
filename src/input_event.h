@@ -1,5 +1,5 @@
 /*==============================================================================
- * input.h
+ * input_event.h
  *----------------------------------------------------------------------------*/
 
 #ifndef __INPUT_EVENT_H__
@@ -8,13 +8,13 @@
 #include "common.h"
 
 #if DEBUG_ALL
-#define DEBUG_INPUT					1
+#define DEBUG_INPUT_EVENT				1
 #else
-#define DEBUG_INPUT					0
+#define DEBUG_INPUT_EVENT				0
 #endif
 
 #define INPTD(fmt, ...) \
-	do { if (DEBUG_INPUT) { DBG(fmt, ##__VA_ARGS__); }} while (false)
+	do { if (DEBUG_INPUT_EVENT) { DBG(fmt, ##__VA_ARGS__); }} while (false)
 
 #define INPUT_EVENT_TEST_TIMEOUT			10
 #define INPUT_EVENT_PATH_LENGTH				128
