@@ -1,0 +1,118 @@
+================================================================================
+CALL STACK
+--------------------------------------------------------------------------------
+A call stack is a stack data structure that stores information about the active
+subroutines of a program. This kind of stack is also known as an execution stack,
+program stack, control stack, run-time stack, or machine stack, and is often
+shortened to just 'the stack'.
+
+A call stack is used for several related purposes, but the main reason for having
+one is to keep track of the point to which each active subroutine should reurn
+control when it finished executing. An active subroutine is one that has been
+called but is yet to complete execution after which control should be handed back
+to the point of call. To accomplish this, the address following the call instruction,
+the return address, is pushed onto the call stack with each call.
+--------------------------------------------------------------------------------
+The call stack is organized as a stack, the caller pushed the return address onto
+the stack, and the called subroutine, when it finishes, pulls or pops the return
+address off the call stack and transfers control to that address.
+If a called subroutine calls on yet another subroutine, it will push another return
+address onto the call stack, and so on, with the information stacking up and
+unstacking as the program dicates.
+If the push ing consumes all of the space allocated for the call stack, an error
+called a stack overflow occurs, generally causing the program to crash.
+Adding a subroutine's entry to the call stack is sometimes called "winding";
+conversely, removing entries is "unwinding".
+--------------------------------------------------------------------------------
+
+================================================================================
+FUNCTIONS
+--------------------------------------------------------------------------------
+The primary purpose of a call stack is to store the return addresses.
+The typical call stack is used for the return address, locals, and parameters.
+
+Local data storage
+	A subroutine frequently needs memory space for storing the values of
+	local variables, the variables that are known only within the active
+	subroutine and do not retain values after it returns.
+	It is often convenient to allocate space for this use by simply moving
+	the top of the stack by enough to provide the space. This is very fast
+	compared to dynamic memory allocation, which uses the heap space.
+	Note that each separate activation of a subroutine gets its own separate
+	space in the stack for locals.
+
+Parameter passing
+	Subroutines often require that values for parameters be supplies to them
+	by the code which calls them, and it is not uncommon that space for these
+	parameters may be laid out in the call stack.
+	If there are more parameters than can be handled by processor registers,
+	the call stack works well as a place for these parameters.
+
+Evaluation stack
+	In some situations the operands may be stacked up to an arbitrary depth,
+	which means something more than registers must be used.
+	The stack of such operands, rather like that in an RPN calculator, is
+	called an evaluation stack, and may occupy space in the call stack.
+
+Pointer to current instance
+	Some object-oriented languages stores the this pointer along with function
+	arguments in the call stack when invoking methods. The this pointer points
+	to the object instance associated with the method to be invoked.
+
+Enclosing subroutine context
+	Some programming languages support declaration of nexted subroutines,
+	which are allowed to access the context of their enclosing routines,
+	the parameters and local variables within the scope of the outer routines.
+	The references to the enclosing static frames may be collected into an
+	array of pointers known as a display which is indexed to locate a desired
+	frame.
+	The display entries denoting containing scopes are obtained from the
+	appropriate prefix of the caller's display. An inner routine which recurses
+	creates separate call frames for each invocation.
+--------------------------------------------------------------------------------
+
+================================================================================
+STRUCTURE
+--------------------------------------------------------------------------------
+STACK FRAME
+--------------------------------------------------------------------------------
+A call stack is composed of stack frames. These are machine dependent and
+ABI-dependent data structures containing subroutine state information. The data
+is sometimes referred to as CFI (Call Frame Information).
+Each stack frame corresponds to a call to a subroutine which has not yet
+terminated with a return.
+
+The stack frame at the top of the stack is for the currently executing routine.
+The stack frame usually includes at least the following items:
+- the arguments (parameter values) passed to the routine (if any);
+- the return address back to the routine's caller;
+- space for the local variables of the routine.
+--------------------------------------------------------------------------------
+FRAME POINTER
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------

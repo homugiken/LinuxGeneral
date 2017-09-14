@@ -1,0 +1,243 @@
+================================================================================
+1. OVERVIEW
+--------------------------------------------------------------------------------
+The C preprocessor, often known as cpp, is a macro processor that is used
+automatically by the C compiler to transform your program before compilation.
+It is called a macro processor because it allows you to define macros,
+which are brief abbreviations for longer constructs.
+--------------------------------------------------------------------------------
+
+================================================================================
+2. HEADER FILES
+--------------------------------------------------------------------------------
+A header file is a file containing C declarations and macro definitions to be
+shared between several source files. You request the use of a header file in
+your program by including it, with the C preprocessing directive '#include'.
+
+- System header files declare the interfaces to parts of the operating syste.
+  you include them in your program to supply the definitions and declarations
+  you need to invoke system calls and libraries.
+
+- Your own header files contain declarations for interfaces between the source
+  files of your program. Each time you have a group of related declarations and
+  macro definitions all or most of which are needed in several different source
+  files, it is a good idea to create a header file for them.
+--------------------------------------------------------------------------------
+2.1 INCLUDE SYNTAX
+--------------------------------------------------------------------------------
+#include <file>
+	This is used for system header files. It searches for a file named file
+	in a standart list of system directories.
+
+#include "file"
+	This is used for header files of your own program. It searches for a
+	file named file first in the directory containing the current file, then
+	in the quote directories and then the same directories used for <file>.
+--------------------------------------------------------------------------------
+2.3 ONCE-ONLY HEADERS
+--------------------------------------------------------------------------------
+/* File foo.  */
+#ifndef FILE_FOO_SEEN
+#define FILE_FOO_SEEN
+
+the entire file
+
+#endif /* !FILE_FOO_SEEN */
+
+The macro FILE_FOO_SEEN is called the controlling macro or guard macro. In a
+user header file, the macro name should not begin with '_'. In a system header
+file, it should begin with '__' to avoid conflicts with user programs.
+In any kind of header fils, the macro name should contain the name of the file
+and some additional text, to avoid conflicts with other header files.
+--------------------------------------------------------------------------------
+
+================================================================================
+3. MACROS
+--------------------------------------------------------------------------------
+A macro is a fragment of code which has been given a name. Whenever the name is
+used, it is replaced by the contents of the macro.
+Object-like macros resemble data objects when used.
+Function-like macros resemble function calls.
+--------------------------------------------------------------------------------
+3.1 OBJECT-LIKE MACROS
+--------------------------------------------------------------------------------
+An object-like macro is a simble identifier which will be replaced by a code
+fragment. They are most commonly used to give symbolic names to numeric
+constants.
+
+By convention, macro names are written in uppercase.
+The macro's body ends at the end of the '#define' line. You may continue the
+definition onto multiple lines using backslash-newline. When the macro is
+expanded, it will all come out on one line.
+
+#define NUMBERS	1, \
+		2, \
+		3
+int x[] = { NUMBERS };
+--------------------------------------------------------------------------------
+3.2 FUNCTION-LIKE MACROS
+--------------------------------------------------------------------------------
+A function-like macro is defined with a pair of parentheses immediately after
+the macro name.
+
+#define lang_init() c_init()
+
+A function-like macro is only expanded if its name appears with a pair of
+parentheses after it. If you write just the name, it is left alone.
+
+If you put spaces between the macro name and the parentheses in the macro
+definition, that does not define a function-like macro, it defines an object-like
+macro whose expansion happens to begin with a pair of parentheses.
+--------------------------------------------------------------------------------
+3.5 CONCATENATION
+--------------------------------------------------------------------------------
+The '##' preprocessing operator performs token pasting. When a macro is expanded,
+the two tokens on either side of each '##' operator are combined into a single
+token, which then replaces the '##' and the two original tokens in the macro
+expansion.
+
+#define COMMAND(NAME) { #NAME, NAME ## _command }
+
+struct command commands[] =
+{
+	COMMAND(quit),		// { "quit", quit_command }
+	COMMAND(help),		// { "help", help_command }
+	...
+};
+--------------------------------------------------------------------------------
+3.6 VARIADIC MACROS
+--------------------------------------------------------------------------------
+A macro can be declared to accept a variable number of arguments much as a
+function can. This kind of macro is called variadic.
+
+#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+
+When the macro is invoked, all the tokens in its argument list after the last
+named argument, including any commas, become the variable argument.
+This sequence of tokens replaces the identifier __VA_ARGS__ in the macro body
+wherever it appears.
+
+The variable argument is completely macro-expanded before it is inserted into
+the macro expansion. You may use the '#' and '##' operators to stringize the
+variable argument or to paste its leading or trailing token with another token.
+
+If your macro is complicated, you may want a more descriptive name for the
+variable argument than __VA_ARGS__. You may write an argument name immediately
+before the '...'; that name is used for the variable argument.
+
+#define eprintf(args...) fprintf (stderr, args)
+
+You can have named arguments as well as variable arguments in a variadic macro.
+
+#define eprintf(format, ...) fprintf (stderr, format, __VA_ARGS__)
+
+The '##' token paste operator has a special meaning when placed between a comma
+and a variable argument.
+
+#define eprintf(format, ...) fprintf (stderr, format, ##__VA_ARGS__)
+
+When the variable argument is left out when the eprintf macro is used, then the
+comma before the '##' will be deleted. This does not happen if you pass an empty
+argument, nor does it happen if the token preceding '##' is anything other than
+a comma.
+--------------------------------------------------------------------------------
+3.7 PREDEFINED MACROS
+--------------------------------------------------------------------------------
+3.7.1 STANDARD PREDEFINED MACROS
+--------------------------------------------------------------------------------
+__FILE__
+	This macro expands to the name of the current input file, in the form of
+	a C string constant. This is the path by which the preprocessor opened
+	the file, not the short name specified in '#include' or as the input file
+	name argument.
+
+__LINE__
+	This macro expands to the current input line number, in the form of a
+	decimal integer constant.
+
+__FUNCTION__
+	String containing the name of the current function. Not a macro.
+
+__DATE__
+	This macro expands to a string constant that describes the date on which
+	the preprocessor is being run. The string constant contains eleven
+	haracters and looks like "Feb 12 1996".
+
+__TIME__
+	This macro expands to a string constant that describes the time at which
+	the preprocessor is being run. The string constant contains eight
+	characters and looks like "23:59:01".
+--------------------------------------------------------------------------------
+3.8 UNDEFINING AND REDEFINING MACROS
+--------------------------------------------------------------------------------
+If a macro ceases to be useful, it may be undefined with the '#undef' directive.
+'#undef' takes a single argument, the name of the macro to undefine.
+You use the bare macro name, even if the macro is function-like. It is an error
+if anything appears on the line after the macro name.
+'#undef' has no effect if the name is not a macro.
+
+Once a macro has been undefined, that identifier may be redefined as a macro by
+a subsequent '#define' directive. The new definition need not have any
+resemblance ot the old definition.
+--------------------------------------------------------------------------------
+3.10 MACRO PITFALLS
+--------------------------------------------------------------------------------
+3.10.4 DUPLICATION OF SIDE EFFECTS
+--------------------------------------------------------------------------------
+#define min(X, Y)		\
+({				\
+	typeof (X) x_ = (X);	\
+	typeof (Y) y_ = (Y);	\
+	(x_ < y_) ? x_ : y_;	})
+
+The '({ ... })' notation produces a compound statement that acts as an
+expression. Its value is the value of its last statement. This permits us to
+define local variables and assign each argument to one. The local variables have
+underscores after their names to reduce the resk of conflict with an identifier
+of wider scpoe. Now each argument is evaluated exactly once.
+--------------------------------------------------------------------------------
+
+================================================================================
+4. CONDITIONALS
+--------------------------------------------------------------------------------
+A conditional is a directive that instructs the preprocessor to select whether
+or not to include a chunck of code in the final token stream passed to the
+compiler. Preprocessor conditionals can test arithmetic expressions, or whether
+a name is defined as a macro, or both simultaneously using the special defined
+operator.
+
+The condition in a preprocessing conditional directive is tested when your
+program is compiled. Its purpose is to allow different code to be included in
+the program depending on the situation at the time of compilation.
+--------------------------------------------------------------------------------
+4.2 CONDITIONAL SYNTAX
+--------------------------------------------------------------------------------
+4.2.1 IFDEF
+--------------------------------------------------------------------------------
+#ifdef MACRO
+	controlled text
+#endif /* MACRO */
+
+This block is called a conditional group. controlled text will be included in
+the output of the preprocessor if and only if MACRO is defined.
+The conditional succeeds if MACRO is defined, fails if it is not.
+
+Sometimes you wish to use some code if a macro is not defined. You can do this
+by writing '#ifndef' instead of '#ifdef'. One common use of '#ifndef' is to
+include code only the first time a header file is included.
+--------------------------------------------------------------------------------
+4.2.3 DEFINED
+--------------------------------------------------------------------------------
+The special operator defined is used in '#if' and '#elif' expressions to test
+whether a certain name is defined as a macro. defined name and defined (name)
+are both expressions whose value is 1 if name is defined as a macro at the
+current point in the program, and 0 otherwise.
+
+#if defined (__vax__) || defined (__ns16000__)
+--------------------------------------------------------------------------------
+4.2.5 ELIF
+--------------------------------------------------------------------------------
+'#elif' stands for "else if". Like '#else', it goes in the middle of a
+conditional group and subdivides it; it does not require a matching '#endif'
+of its own.
+--------------------------------------------------------------------------------

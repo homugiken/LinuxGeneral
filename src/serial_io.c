@@ -3,7 +3,7 @@
  *----------------------------------------------------------------------------*/
 
 #include "serial_io.h"
-#include "clock.h"
+// #include "clock.h"
 
 /*==============================================================================
  * serial_io_open()
@@ -45,7 +45,7 @@ int serial_io_open (const char * const name, int * const fd)
 	}
 	else {
 		*fd = ret;
-		SIOD("open %s fd=%d\n", path, *fd);
+		printf("open %s fd=%d\n", path, *fd);
 	}
 
 exit:
@@ -79,9 +79,14 @@ exit:
 }
 /*----------------------------------------------------------------------------*/
 
+/*==============================================================================
+ * serial_io_configure()
+ * Configure serial io.
+ * Return 0 when success. Return -1 when error.
+ *----------------------------------------------------------------------------*/
 int serial_io_configure (const int fd)
 {
-	int ret = -1;
+	int ret;
 	struct termios _cfg;
 	struct termios * cfg = &_cfg;
 
@@ -116,7 +121,13 @@ int serial_io_configure (const int fd)
 exit:
 	return (ret);
 }
+/*----------------------------------------------------------------------------*/
 
+/*==============================================================================
+ * serial_io_rx()
+ * Read from serial io.
+ * Return number of bytes read.
+ *----------------------------------------------------------------------------*/
 int serial_io_rx (const int fd, void * const data, const size_t count)
 {
 	int ret;
@@ -131,8 +142,14 @@ int serial_io_rx (const int fd, void * const data, const size_t count)
 
 	return (ret);
 }
+/*----------------------------------------------------------------------------*/
 
-int serial_io_tx (const int fd, const uint8_t * const data, const size_t count)
+/*==============================================================================
+ * serial_io_tx()
+ * Write to serial io.
+ * Return number of bytes written.
+ *----------------------------------------------------------------------------*/
+int serial_io_tx (const int fd, void * const data, const size_t count)
 {
 	int ret;
 
@@ -146,9 +163,13 @@ int serial_io_tx (const int fd, const uint8_t * const data, const size_t count)
 
 	return (ret);
 }
+/*----------------------------------------------------------------------------*/
 
-
-
+/*==============================================================================
+ * serial_io_tx()
+ * Write to serial io.
+ * Return number of bytes written.
+ *----------------------------------------------------------------------------*/
 void serial_io_attribution_dump (const int fd)
 {
 	int ret;
@@ -169,20 +190,20 @@ void serial_io_attribution_dump (const int fd)
 	printf("\tc_cc[VMIN]\t0x%08X\n", attr->c_cc[VMIN]);
 	printf("\tc_cc[VTIME]\t0x%08X\n", attr->c_cc[VTIME]);
 }
+/*----------------------------------------------------------------------------*/
 
-
-
-
-
+/*==============================================================================
+ * serial_io_tx()
+ * Write to serial io.
+ * Return number of bytes written.
+ *----------------------------------------------------------------------------*/
 int serial_io_test (void)
 {
 	int ret = -1;
 	int fd = -1;
 	int i;
+	int count;
 	uint8_t buf[SERIAL_IO_TEST_BUFFER_LENGTH];
-	clockspec clkStart;
-	clockspec clkNow;
-	clockspec clkWait;
 
 	ret = system("ls -l /dev/ | grep \"ttyS\\|ttyUSB\"");
 
@@ -198,16 +219,8 @@ int serial_io_test (void)
 	}
 	memset(buf, 0, sizeof (buf));
 
-	clkWait.tv_sec	= SERIAL_IO_TEST_TIMEOUT;
-	clkWait.tv_nsec	= 0;
-	printf("serial io test start, time limit %lds\n", clkWait.tv_sec);
-
-	ret = clock_gettime(CLOCK_MONOTONIC, &clkStart);
-	if (ret != 0) {
-		SIOD("clock_gettime error ret=%d\n", ret);
-	}
-
-	while (1) {
+	printf("serial io test start\n");
+	for (count = 0; count < SERIAL_IO_TEST_COUNT; count++) {
 		ret = serial_io_tx(fd, SERIAL_IO_TEST_STRING, sizeof (SERIAL_IO_TEST_STRING));
 		if (ret > 0) {
 			printf("tx %d bytes\n", ret);
@@ -215,27 +228,16 @@ int serial_io_test (void)
 
 		ret = serial_io_rx(fd, buf, sizeof (buf));
 		if (ret > 0) {
-			printf("rx %d bytes: ", ret);
-			printf("%s\n", buf);
+			printf("rx %d bytes: \"%s\"", ret, buf);
 			for (i = 0; i < ret; i++) {
 				printf("  %02X", buf[i]);
 			}
 			printf("\n");
 		}
 
-		ret = clock_gettime(CLOCK_MONOTONIC, &clkNow);
-		if (ret != 0) {
-			SIOD("clock_gettime error ret=%d\n", ret);
-			continue;
-		}
-
-		if (clock_wait(&clkStart, &clkNow, &clkWait) >= 0) {
-			printf("input event test timeout\n");
-			break;
-		}
-
 		sleep(1);
 	}
+	printf("serial io test done\n");
 
 exit:
 	if (fd >= 0) {
@@ -244,3 +246,5 @@ exit:
 
 	return (ret);
 }
+/*----------------------------------------------------------------------------*/
+

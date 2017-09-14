@@ -1,0 +1,28 @@
+================================================================================
+DESIGNATED INITIALIZER
+--------------------------------------------------------------------------------
+You can give the elements of an initializer in any order, specifying the array
+indices or structure field names they apply to.
+
+int a[6] = { [4] = 29, [2] = 15 };
+
+To initialize a range of elements to the same value,
+write '[first ... last] = value'.
+
+int widths[] = { [0 ... 9] = 1, [10 ... 99] = 2. [100] = 3 };
+
+In a structure initializer, specify the name of a field to initialize with
+'.fieldname = ' before the element value.
+
+struct point p  = { .y = yvalue, .x = xvalue };
+
+Omitted field members are implicitly initialized the same as objects that have
+static storage duration.
+
+The '[index]' or '.fieldname' is known as designator. You can also use a
+designator when initializing a union, to specify which element of the union
+should be used.
+
+union foo { int i; double d; };
+union foo f = { .d = 4 };
+--------------------------------------------------------------------------------
