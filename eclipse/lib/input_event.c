@@ -6,7 +6,7 @@
 
 static char * syn_name[SYN_MAX + 1] =
 {
-	[0 ... SYN_MAX]	= NULL,
+	[0 ... SYN_MAX] = NULL,
 	NAME_INITIALIZER(SYN_REPORT),
 	NAME_INITIALIZER(SYN_CONFIG),
 	NAME_INITIALIZER(SYN_MT_REPORT),
@@ -15,7 +15,7 @@ static char * syn_name[SYN_MAX + 1] =
 
 static char * rel_name[REL_MAX + 1] =
 {
-	[0 ... REL_MAX]	= NULL,
+	[0 ... REL_MAX] = NULL,
 	NAME_INITIALIZER(REL_X),
 	NAME_INITIALIZER(REL_Y),
 	NAME_INITIALIZER(REL_Z),
@@ -108,7 +108,7 @@ static char * msc_name[MSC_MAX + 1] =
 
 static char * led_name[LED_MAX + 1] =
 {
-	[0 ... LED_MAX]	= NULL,
+	[0 ... LED_MAX] = NULL,
 	NAME_INITIALIZER(LED_NUML),
 	NAME_INITIALIZER(LED_CAPSL),
 	NAME_INITIALIZER(LED_SCROLLL),
@@ -124,14 +124,14 @@ static char * led_name[LED_MAX + 1] =
 
 static char * rep_name[REP_MAX + 1] =
 {
-	[0 ... REP_MAX]	= NULL,
+	[0 ... REP_MAX] = NULL,
 	NAME_INITIALIZER(REP_DELAY),
 	NAME_INITIALIZER(REP_PERIOD)
 };
 
 static char * snd_name[SND_MAX + 1] =
 {
-	[0 ... SND_MAX]	= NULL,
+	[0 ... SND_MAX] = NULL,
 	NAME_INITIALIZER(SND_CLICK),
 	NAME_INITIALIZER(SND_BELL),
 	NAME_INITIALIZER(SND_TONE)
@@ -139,7 +139,7 @@ static char * snd_name[SND_MAX + 1] =
 
 static char * key_name[KEY_MAX + 1] =
 {
-	[0 ... KEY_MAX]			= NULL,
+	[0 ... KEY_MAX] = NULL,
 	NAME_INITIALIZER(KEY_RESERVED),
 	NAME_INITIALIZER(KEY_ESC),
 	NAME_INITIALIZER(KEY_1),
@@ -709,6 +709,7 @@ static char ** event_code_name[EV_MAX + 1] =
 	[EV_REL] = rel_name,
 	[EV_ABS] = abs_name,
 	[EV_MSC] = msc_name,
+	[EV_SW] = sw_name,
 	[EV_LED] = led_name,
 	[EV_SND] = snd_name,
 	[EV_REP] = rep_name
@@ -730,6 +731,12 @@ static char * event_name[EV_MAX + 1] =
 	NAME_INITIALIZER(EV_PWR),
 	NAME_INITIALIZER(EV_FF_STATUS)
 };
+
+#define KEYEV_RELEASED					0x00
+#define KEYEV_PRESSED					0x01
+#define KEYEV_REPEATED					0x02
+#define KEYEV_MAX					0x03
+#define KEYEV_CNT					(KEYEV_MAX + 1)
 
 static char * keyev_name[KEYEV_MAX + 1] =
 {
@@ -925,7 +932,6 @@ exit:
 static int key_event_info (const inputevent * const input, char * const info)
 {
 	int ret = -1;
-	char * buf;
 
 	IPEVD_NULL_ARGUMENT(input);
 	IPEVD_NULL_ARGUMENT(info);
@@ -1013,8 +1019,8 @@ int input_event_test (void)
 {
 	int ret = -1;
 	int fd = -1;
-	int i;
-	inputevent input;
+	inputevent _input;
+	inputevent * input = &_input;
 
 	ret = system("ls -lR /dev/input/");
 
@@ -1024,9 +1030,9 @@ int input_event_test (void)
 
 
 	while (1) {
-		ret = input_event_read(fd, &input);
+		ret = input_event_read(fd, input);
 		if (ret > 0) {
-			input_event_dump(&input);
+			input_event_dump(input);
 		}
 	}
 

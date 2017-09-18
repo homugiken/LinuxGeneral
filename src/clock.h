@@ -16,6 +16,8 @@
 #define CLKD(fmt, ...) \
 	do { if (DEBUG_CLOCK) { DBG(fmt, ##__VA_ARGS__); }} while (false)
 
+
+
 #define MSEC_PER_SEC					1000L
 #define USEC_PER_MSEC					1000L
 #define NSEC_PER_USEC					1000L
