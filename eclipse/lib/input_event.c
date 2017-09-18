@@ -716,7 +716,7 @@ static char ** event_code_name[EV_MAX + 1] =
 
 static char * event_name[EV_MAX + 1] =
 {
-	[0 ... EV_MAX]	= NULL,
+	[0 ... EV_MAX] = NULL,
 	NAME_INITIALIZER(EV_SYN),
 	NAME_INITIALIZER(EV_KEY),
 	NAME_INITIALIZER(EV_REL),
@@ -731,6 +731,14 @@ static char * event_name[EV_MAX + 1] =
 	NAME_INITIALIZER(EV_FF_STATUS)
 };
 
+static char * keyev_name[KEYEV_MAX + 1] =
+{
+	[0 ... KEYEV_MAX] = NULL,
+	NAME_INITIALIZER(KEYEV_RELEASED),
+	NAME_INITIALIZER(KEYEV_PRESSED),
+	NAME_INITIALIZER(KEYEV_REPEATED)
+};
+
 /*==============================================================================
  * input_event_open()
  * Open input event.
@@ -741,32 +749,20 @@ int input_event_open (const char * const name, int * const fd)
 	int ret = -1;
 	char path[INPUT_EVENT_PATH_LENGTH];
 
-	if (fd == NULL) {
-		IPEVD("parameter error\n");
-		goto exit;
-	}
+	IPEVD_NULL_ARGUMENT(fd);
 
 	if (name != NULL) {
-		if (strcpy(path, name) != path) {
-			IPEVD("strcpy error\n");
-			goto exit;
-		}
+		IPEVD_NULL_RETURN(strcpy(path, name), strcpy);
 	}
 	else {
 		printf("\nPlease enter input event path: ");
 		ret = scanf("%128s", path);
-		if (ret <= 0) {
-			IPEVD("scanf error ret=%d\n", ret);
-			goto exit;
-		}
+		IPEVD_NEGATIVE_RETURN(ret, scanf);
 	}
 
 	IPEVD("try to open: %s\n", path);
 	ret = open(path, O_RDONLY);
-	if (ret < 0) {
-		IPEVD("open error ret=%d\n", ret);
-		goto exit;
-	}
+	IPEVD_NEGATIVE_RETURN(ret, open);
 
 	*fd = ret;
 	IPEVD("open %s fd=%d\n", path, *fd);
@@ -785,17 +781,10 @@ int input_event_close (const int fd)
 {
 	int ret = -1;
 
-	if (fd < 0) {
-		IPEVD("parameter error\n");
-		goto exit;
-	}
+	IPEVD_NEGATIVE_ARGUMENT(fd);
 
 	ret = close(fd);
-	if (ret < 0) {
-		IPEVD("close error ret=%d\n", ret);
-		goto exit;
-	}
-
+	IPEVD_NEGATIVE_RETURN(ret, close);
 	IPEVD("close fd=%d\n", fd);
 
 exit:
@@ -812,15 +801,11 @@ int input_event_read (const int fd, inputevent * const input)
 {
 	int ret = -1;
 
-	if ((fd < 0) || (input == NULL)) {
-		IPEVD("parameter error\n");
-		goto exit;
-	}
+	IPEVD_NULL_ARGUMENT(input);
+	IPEVD_NEGATIVE_ARGUMENT(fd);
 
 	ret = read(fd, input, sizeof (inputevent));
-	if (ret < 0) {
-		IPEVD("read error ret=%d\n", ret);
-	}
+	IPEVD_NEGATIVE_RETURN(ret, read);
 
 exit:
 	return (ret);
@@ -850,10 +835,7 @@ void input_event_device_dump (const int fd)
 	int ret;
 	int version;
 
-	if (fd < 0) {
-		IPEVD("parameter error\n");
-		return;
-	}
+	IPEVD_NEGATIVE_ARGUMENT(fd);
 
 	printf("Input event device information:\n");
 	if (ioctl(fd, EVIOCGVERSION, &version) > 0) {
@@ -888,6 +870,9 @@ void input_event_device_dump (const int fd)
 		}
 	}
 	printf("\n");
+
+exit:
+	return;
 }
 /*----------------------------------------------------------------------------*/
 
@@ -900,10 +885,8 @@ static int general_event_info (const inputevent * const input, char * const info
 {
 	int ret = -1;
 
-	if ((input == NULL) || (info == NULL)) {
-		IPEVD("parameter error\n");
-		goto exit;
-	}
+	IPEVD_NULL_ARGUMENT(input);
+	IPEVD_NULL_ARGUMENT(info);
 
 	if (event_code_name[input->type][input->code] != NULL) {
 		ret = sprintf(info, "%s value=%u|0x%X",
@@ -925,11 +908,7 @@ static int general_event_info (const inputevent * const input, char * const info
 		        input->value, input->value
 		        );
 	}
-
-	if (ret < 0) {
-		IPEVD("sprintf error ret=%d\n", ret);
-		goto exit;
-	}
+	IPEVD_NEGATIVE_RETURN(ret, sprintf);
 
 	ret = strlen(info);
 
@@ -948,33 +927,23 @@ static int key_event_info (const inputevent * const input, char * const info)
 	int ret = -1;
 	char * buf;
 
-	if ((input == NULL) || (info == NULL) || (input->type != EV_KEY)) {
-		IPEVD("parameter error\n");
+	IPEVD_NULL_ARGUMENT(input);
+	IPEVD_NULL_ARGUMENT(info);
+	if (input->type != EV_KEY) {
+		IPEVD("input->type=%u|0x%X\n", input->type, input->type);
 		goto exit;
 	}
 
 	ret = general_event_info(input, info);
-	if (ret < 0) {
-		goto exit;
-	}
+	IPEVD_NEGATIVE_RETURN(ret, general_event_info);
 
-	switch (input->value) {
-	case (KEY_EVENT_RELEASED):
-		buf = " released";
-		break;
-	case (KEY_EVENT_PRESSED):
-		buf = " pressed";
-		break;
-	case (KEY_EVENT_REPEATED):
-		buf = " repeated";
-		break;
-	default:
-		break;
+	ret = -1;
+	IPEVD_NULL_RETURN(strcat(info, " "), strcat);
+	if ((input->value >= 0) && (input->value < KEYEV_MAX) && (keyev_name[input->value] != NULL)) {
+		IPEVD_NULL_RETURN(strcat(info, keyev_name[input->value]), strcat);
 	}
-
-	if (strcat(info, buf) != info) {
-		ret = -1;
-		IPEVD("strcat error\n");
+	else {
+		IPEVD_NULL_RETURN(strcat(info, "unknown"), strcat);
 	}
 
 	ret = strlen(info);
@@ -993,11 +962,7 @@ void input_event_dump (const inputevent * const input)
 	char info[INPUT_EVENT_DUMP_LENGTH];
 	int ret = -1;
 
-	if (input == NULL) {
-		IPEVD("parameter error\n");
-		return;
-	}
-	memset(info, 0, sizeof (info));
+	IPEVD_NULL_ARGUMENT(input);
 
 	switch (input->type) {
 	case (EV_SYN):
@@ -1029,10 +994,14 @@ void input_event_dump (const inputevent * const input)
 		ret = general_event_info(input, info);
 		break;
 	}
-	if (ret == 0) {
-		printf("\t[%lds:%06ldus]\t{%s}\n",
-		       input->time.tv_sec, input->time.tv_usec, info);
+	if (ret < 0) {
+		goto exit;
 	}
+
+	printf("\t[%lds:%06ldus]\t{%s}\n", input->time.tv_sec, input->time.tv_usec, info);
+
+exit:
+	return;
 }
 /*----------------------------------------------------------------------------*/
 
@@ -1047,26 +1016,12 @@ int input_event_test (void)
 	int i;
 	inputevent input;
 
-
-	for (i = 0; i < SYN_MAX; i++) {
-		if (syn_name[i] != NULL) {
-			printf("syn_name[%d]=\"%s\"\n", i, syn_name[i]);
-		}
-	}
-
-	goto exit;
-
 	ret = system("ls -lR /dev/input/");
 
 	ret = input_event_open(NULL, &fd);
-	if (ret < 0) {
-		goto exit;
-	}
+	IPEVD_NEGATIVE_RETURN(ret, input_event_open);
 	input_event_device_dump(fd);
 
-	if (ret != 0) {
-		IPEVD("clock_gettime error ret=%d\n", ret);
-	}
 
 	while (1) {
 		ret = input_event_read(fd, &input);

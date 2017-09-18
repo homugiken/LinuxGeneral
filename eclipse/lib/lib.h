@@ -25,4 +25,12 @@
 #define LIBDBG(fmt, ...) \
 	do { if (DEBUG_LIB) { printf("%s %04d: "fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__); } } while (false)
 
+#define NAME_INITIALIZER(NAME)				[NAME] = #NAME
+
+#define CHECK_NULL_ARGUMENT(ARG, DBG)			if (ARG == NULL) { DBG("argument %s=NULL\n", #ARG); goto exit; }
+#define CHECK_NEGATIVE_ARGUMENT(ARG, DBG)		if (ARG < 0) { DBG("argument %s=%d\n", #ARG, ARG); goto exit; }
+
+#define CHECK_NULL_RETURN(RET, FUNC, DBG)		if (RET == NULL) { DBG("%s ret=NULL\n", #FUNC); goto exit; }
+#define CHECK_NEGATIVE_RETURN(RET, FUNC, DBG)		if (RET < 0) { DBG("%s ret=%d\n", #FUNC, RET); goto exit; }
+
 #endif /* LIB_H_ */
