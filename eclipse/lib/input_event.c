@@ -3,6 +3,7 @@
  *----------------------------------------------------------------------------*/
 
 #include "input_event.h"
+#include "clock_time.h"
 
 static char * syn_name[SYN_MAX + 1] =
 {
@@ -844,7 +845,7 @@ void input_event_device_dump (const int fd)
 
 	IPEVD_NEGATIVE_ARGUMENT(fd);
 
-	printf("Input event device information:\n");
+	printf("\nInput device information:\n");
 	if (ioctl(fd, EVIOCGVERSION, &version) > 0) {
 		printf("EVIOCGVERSION:\t0x%04X\n", version);
 	}
@@ -861,9 +862,6 @@ void input_event_device_dump (const int fd)
 	if (ioctl(fd, EVIOCGUNIQ(sizeof (buf)), buf) > 0) {
 		printf("EVIOCGUNIQ:\t%s\n", buf);
 	}
-	if (ioctl(fd, EVIOCGPROP(sizeof (buf)), buf) > 0) {
-		printf("EVIOCGPROP:\t%s\n", buf);
-	}
 	if (ioctl(fd, EVIOCGMTSLOTS(sizeof (buf)), buf) > 0) {
 		printf("EVIOCGMTSLOTS:\t%s\n", buf);
 	}
@@ -876,7 +874,6 @@ void input_event_device_dump (const int fd)
 			}
 		}
 	}
-	printf("\n");
 
 exit:
 	return;
@@ -1021,18 +1018,30 @@ int input_event_test (void)
 	int fd = -1;
 	inputevent _input;
 	inputevent * input = &_input;
+	clkspec _clkStart;
+	clkspec * clkStart = &_clkStart;
+	long timeout = INPUT_EVENT_TEST_TIMEOUT;
 
+	printf("\nInput event test:\n");
 	ret = system("ls -lR /dev/input/");
 
 	ret = input_event_open(NULL, &fd);
 	IPEVD_NEGATIVE_RETURN(ret, input_event_open);
 	input_event_device_dump(fd);
 
+	ret = clock_gettime(CLOCK_ID_DEFAULT, clkStart);
+	IPEVD_NEGATIVE_RETURN(ret, clock_gettime);
+	printf("\nTest ends in %lds...\n", timeout);
 
 	while (1) {
 		ret = input_event_read(fd, input);
 		if (ret > 0) {
 			input_event_dump(input);
+		}
+
+		ret = clock_wait_sec (clkStart, timeout);
+		if (ret == 0) {
+			break;
 		}
 	}
 

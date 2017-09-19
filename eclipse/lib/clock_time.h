@@ -46,7 +46,8 @@ int clock_add (const clkspec * const clkA, const clkspec * const clkB, clkspec *
 int clock_sub (const clkspec * const clkA, const clkspec * const clkB, clkspec * const clkDiff);
 int clock_compare (const clkspec * const clkA, const clkspec * const clkB);
 int clock_wait (const clkspec * const clkOld, const clkspec * const clkWait);
-void clock_show (void);
+int clock_wait_nano (const clkspec * const clkOld, const long nano);
+int clock_wait_sec (const clkspec * const clkOld, const long sec);
 int clock_test (void);
 
 #endif /* CLOCK_TIME_H_ */

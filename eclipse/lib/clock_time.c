@@ -67,7 +67,10 @@ int clock_add (const clkspec * const clkA, const clkspec * const clkB, clkspec *
 	clock_normalize(clkSum);
 	ret = 0;
 #if 0
-	CLKTD("\nclkSum=[%lds:%09ldns]\n", clkSum->tv_sec, clkSum->tv_nsec);
+	CLKTD("\nA[%lds:%09ldns]+B[%lds:%09ldns]=Sum[%lds:%09ldns]\n",
+	      clkA->tv_sec, clkA->tv_nsec,
+	      clkB->tv_sec, clkB->tv_nsec,
+	      clkSum->tv_sec, clkSum->tv_nsec);
 #endif
 
 exit:
@@ -93,7 +96,10 @@ int clock_sub (const clkspec * const clkA, const clkspec * const clkB, clkspec *
 	clock_normalize(clkDiff);
 	ret = 0;
 #if 0
-	CLKTD("clkDiff=[%lds:%09ldns]\n", clkDiff->tv_sec, clkDiff->tv_nsec);
+	CLKTD("\nA[%lds:%09ldns]-B[%lds:%09ldns]=Diff[%lds:%09ldns]\n",
+	      clkA->tv_sec, clkA->tv_nsec,
+	      clkB->tv_sec, clkB->tv_nsec,
+	      clkDiff->tv_sec, clkDiff->tv_nsec);
 #endif
 
 exit:
@@ -117,10 +123,6 @@ int clock_compare (const clkspec * const clkA, const clkspec * const clkB)
 
 	ret = clock_sub(clkA, clkB, clkDiff);
 	CLKTD_NEGATIVE_RETURN(ret, clock_sub);
-#if 0
-	CLKTD("clkDiff=[%lds:%09ldns]\n", clkDiff->tv_sec, clkDiff->tv_nsec);
-#endif
-
 	if ((clkDiff->tv_sec > 0) || (clkDiff->tv_nsec > 0)) {
 		ret = CLOCK_LATER;
 	}
@@ -130,6 +132,12 @@ int clock_compare (const clkspec * const clkA, const clkspec * const clkB)
 	else {
 		ret = CLOCK_SAME;
 	}
+#if 0
+	CLKTD("A[%lds:%09ldns] compares B[%lds:%09ldns] %s\n",
+	      clkA->tv_sec, clkA->tv_nsec,
+	      clkB->tv_sec, clkB->tv_nsec,
+	      compare_name[ret]);
+#endif
 
 exit:
 	return (ret);
@@ -156,7 +164,6 @@ int clock_wait (const clkspec * const clkOld, const clkspec * const clkWait)
 	CLKTD_NEGATIVE_RETURN(ret, clock_add);
 	if ((clkDue->tv_sec <= 0) && (clkDue->tv_nsec <= 0)) {
 		ret = 0;
-		CLKTD("no wait");
 		goto exit;
 	}
 
@@ -169,8 +176,53 @@ int clock_wait (const clkspec * const clkOld, const clkspec * const clkWait)
 	else {
 		ret = 0;
 	}
+#if 0
+	CLKTD("Now[%lds:%09ldns] timeout\n", clkNow->tv_sec, clkNow->tv_nsec);
+#endif
 
 exit:
+	return (ret);
+}
+/*----------------------------------------------------------------------------*/
+
+/*==============================================================================
+ * clock_wait_nano()
+ * Wait from clkOld for nano nanoseconds of time.
+ * Return 0 when timeout. Return -1 when not yet.
+ *----------------------------------------------------------------------------*/
+int clock_wait_nano (const clkspec * const clkOld, const long nano)
+{
+	int ret;
+	clkspec _clkWait;
+	clkspec * clkWait = &_clkWait;
+
+	clkWait->tv_sec = 0;
+	clkWait->tv_nsec = nano;
+	clock_normalize(clkWait);
+
+	ret = clock_wait(clkOld, clkWait);
+
+	return (ret);
+}
+/*----------------------------------------------------------------------------*/
+
+/*==============================================================================
+ * clock_wait_sec()
+ * Wait from clkOld for sec seconds of time.
+ * Return 0 when timeout. Return -1 when not yet.
+ *----------------------------------------------------------------------------*/
+int clock_wait_sec (const clkspec * const clkOld, const long sec)
+{
+	int ret;
+	clkspec _clkWait;
+	clkspec * clkWait = &_clkWait;
+
+	clkWait->tv_sec = sec;
+	clkWait->tv_nsec = 0;
+	clock_normalize(clkWait);
+
+	ret = clock_wait(clkOld, clkWait);
+
 	return (ret);
 }
 /*----------------------------------------------------------------------------*/
@@ -179,12 +231,13 @@ exit:
  * clock_show()
  * Show current clock data.
  *----------------------------------------------------------------------------*/
-void clock_show (void)
+static void clock_show (void)
 {
 	clkspec _clk;
 	clkspec * clk = &_clk;
 	int i;
 
+	printf("\nClock IDs:\n");
 	for (i = 0; i < CLOCK_ID_MAX; i++) {
 		if (clock_name[i] == NULL) {
 			continue;
@@ -218,7 +271,7 @@ static void clock_add_test (void)
 	int i;
 	int ret;
 
-	printf("\nclock add test:\n");
+	printf("\nClock add test:\n");
 
 	clkA->tv_sec = -1;
 	clkA->tv_nsec = -(NSEC_PER_SEC / 2);
@@ -249,7 +302,7 @@ static void clock_sub_test (void)
 	int i;
 	int ret;
 
-	printf("\nclock sub test:\n");
+	printf("\nClock sub test:\n");
 
 	clkA->tv_sec = 1;
 	clkA->tv_nsec = (NSEC_PER_SEC / 2);
@@ -278,7 +331,7 @@ static void clock_compare_test (void)
 	int i;
 	int ret;
 
-	printf("\nclock compare test:\n");
+	printf("\nClock compare test:\n");
 
 	clkA->tv_sec = 0;
 	clkA->tv_nsec = -(NSEC_PER_SEC / 2);
@@ -326,7 +379,7 @@ static void clock_wait_test (void)
 	int i;
 	int ret;
 
-	printf("\nclock wait test:\n");
+	printf("\nClock wait test:\n");
 
 	clkWait->tv_sec = 0;
 	clkWait->tv_nsec = (NSEC_PER_SEC / 2);
@@ -336,10 +389,10 @@ static void clock_wait_test (void)
 
 		ret = clock_gettime(CLOCK_ID_DEFAULT, clkOld);
 		CLKTD_NEGATIVE_RETURN(ret, clock_gettime);
-
 		printf("clkWait=[%lds:%09ldns] clkOld=[%lds:%09ldns]",
 		       clkWait->tv_sec, clkWait->tv_nsec,
 		       clkOld->tv_sec, clkOld->tv_nsec);
+
 		while(clock_wait(clkOld, clkWait) != 0) {}
 		ret = clock_gettime(CLOCK_ID_DEFAULT, clkOld);
 		CLKTD_NEGATIVE_RETURN(ret, clock_gettime);

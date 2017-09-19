@@ -17,11 +17,7 @@
 int main(void) {
 	int ret;
 
-	// puts("hello"); /* prints hello */
+	ret = lib_test();
 
-	// ret = input_event_test();
-	ret = clock_test();
-
-
-	return EXIT_SUCCESS;
+	return (ret);
 }

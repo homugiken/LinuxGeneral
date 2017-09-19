@@ -33,4 +33,6 @@
 #define CHECK_NULL_RETURN(RET, FUNC, DBG)		if (RET == NULL) { DBG("%s ret=NULL\n", #FUNC); goto exit; }
 #define CHECK_NEGATIVE_RETURN(RET, FUNC, DBG)		if (RET < 0) { DBG("%s ret=%d\n", #FUNC, RET); goto exit; }
 
+int lib_test (void);
+
 #endif /* LIB_H_ */
