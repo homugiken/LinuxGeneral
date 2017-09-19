@@ -16,6 +16,8 @@
 #define CLKD(fmt, ...) \
 	do { if (DEBUG_CLOCK) { DBG(fmt, ##__VA_ARGS__); }} while (false)
 
+
+
 #define MSEC_PER_SEC					1000L
 #define USEC_PER_MSEC					1000L
 #define NSEC_PER_USEC					1000L
@@ -24,9 +26,12 @@
 #define NSEC_PER_SEC					1000000000L
 #define FSEC_PER_SEC					1000000000000000LL
 
-#define CLOCK_COMPARE_SAME				0
-#define CLOCK_COMPARE_EARLIER				-1
-#define CLOCK_COMPARE_OLDER				1
+#define CLOCK_COMPARE_EARLIER				0
+#define CLOCK_COMPARE_SAME				1
+#define CLOCK_COMPARE_LATER				2
+
+#define CLOCK_TEST_STEP					(NSEC_PER_SEC / 4)
+#define CLOCK_TEST_LENGTH				(((2 * NSEC_PER_SEC / CLOCK_TEST_STEP) * 2) + 1)
 
 #define CLOCK_ID_DEFAULT				CLOCK_MONOTONIC
 
@@ -36,31 +41,11 @@ typedef struct CLOCK_TYPE {
 	char *		name;
 } CLOCK_TYPE;
 
-int clock_add (
-	const clockspec * const ta,
-	const clockspec * const tb,
-	clockspec * const result
-	);
-
-int clock_sub (
-	const clockspec * const ta,
-	const clockspec * const tb,
-	clockspec * const result
-	);
-
-int clock_compare (
-	const clockspec * const ta,
-	const clockspec * const tb,
-	int * const result
-	);
-
-int clock_wait (
-	const clockspec * const told,
-	const clockspec * const tnow,
-	const clockspec * const wait
-	);
-
+int clock_add (const clockspec * const clkA, const clockspec * const clkB, clockspec * const clkSum);
+int clock_sub (const clockspec * const clkA, const clockspec * const clkB, clockspec * const clkDiff);
+int clock_cmp (const clockspec * const clkA, const clockspec * const clkB, int * const compare);
+int clock_wait (const clockspec * const clkNow, const clockspec * const clkOld, const clockspec * const clkWait);
 void clock_show (void);
-void clock_test (void);
+int clock_test (void);
 
 #endif	/*__CLOCK_H__*/

@@ -1,0 +1,25 @@
+================================================================================
+INLINE
+--------------------------------------------------------------------------------
+An inline function is as fast as a macro. By declaring a function inline, you
+can direct GCC to make calls to that function faster.
+One way GCC can achieve this is to integrate that function's code into the code
+for its callers. This makes execution faster by eliminating the function-call
+overhead; in addition, if any of the actual argument values are constant, their
+known values may permit simplifications at compile time so that not all of the
+inline function's code needs to be included.
+
+To declare a function inline, use the inline keyword in its declaration.
+
+static inline int
+inc (int *a)
+{
+	return (*a)++;
+}
+
+Certain usages in a function definition can make it unsuitable for inline
+substitution.
+variadic functions, use of alloca, use of computed goto, use of nonlocal goto,
+use of nexted functions, use of setjmp, use of __builtin_longjmp and
+use of __builtin_return or __builtin_apply_args.
+--------------------------------------------------------------------------------

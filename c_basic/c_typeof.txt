@@ -1,0 +1,18 @@
+================================================================================
+TYPEOF
+--------------------------------------------------------------------------------
+typeof (x[0](1))
+	This assumes that x is an array of pointers to functions; the type
+	described is that of the values of the functions.
+
+typeof (int *)
+	The type described is taht of pointers to int.
+
+typeof is often useful in conjunction with statement expressions.
+
+#define max(a,b) 			\
+	({				\
+		typeof (a) _a = (a);	\
+		typeof (b) _b = (b);	\
+		_a > _b ? _a : _b;	})
+--------------------------------------------------------------------------------

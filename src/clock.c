@@ -4,20 +4,29 @@
 
 #include "clock.h"
 
-static CLOCK_TYPE gClockType[] = {
+static const clockspec _clkZero = {0, 0};
+static const clockspec * clkZero = &_clkZero;
+
+static const CLOCK_TYPE clock_name[] =
+{
 	{CLOCK_REALTIME, "CLOCK_REALTIME"},
 	{CLOCK_MONOTONIC, "CLOCK_MONOTONIC"},
 	{CLOCK_PROCESS_CPUTIME_ID, "CLOCK_PROCESS_CPUTIME_ID"},
 	{CLOCK_THREAD_CPUTIME_ID, "CLOCK_THREAD_CPUTIME_ID"}
 };
 
+static const char * const cmp_name[3] =
+{
+	[CLOCK_COMPARE_EARLIER] = "earlier",
+	[CLOCK_COMPARE_SAME] = "same",
+	[CLOCK_COMPARE_LATER] = "later"
+};
+
 /*==============================================================================
  * clock_norm()
- * Normalize the clock value.
+ * Normalize clock value.
  *----------------------------------------------------------------------------*/
-static void clock_norm (
-	clockspec * const clock
-	)
+static void clock_norm (clockspec * const clock)
 {
 	if (clock == NULL) {
 		CLKD("parameter error\n");
@@ -45,32 +54,22 @@ static void clock_norm (
 
 /*==============================================================================
  * clock_add()
- * Add the values of ca and cb, then save to result.
+ * clkA adds clkB = clkSum
  * Return 0 when success. Return -1 when error.
  *----------------------------------------------------------------------------*/
-int clock_add (
-	const clockspec * const ca,
-	const clockspec * const cb,
-	clockspec * const result
-	)
+int clock_add (const clockspec * const clkA, const clockspec * const clkB, clockspec * const clkSum)
 {
 	int ret = -1;
 
-	if ((ca == NULL) || (cb == NULL) || (result == NULL)) {
+	if ((clkA == NULL) || (clkB == NULL) || (clkSum == NULL)) {
 		CLKD("parameter error\n");
 		goto exit;
 	}
 
-	result->tv_sec = ca->tv_sec + cb->tv_sec;
-	result->tv_nsec = ca->tv_nsec + cb->tv_nsec;
-	clock_norm(result);
-#if 0
-	CLKD("[%ld:%ld]+[%ld:%ld]=[%ld:%ld]\n",
-	     ca->tv_sec, ca->tv_nsec,
-	     cb->tv_sec, cb->tv_nsec,
-	     result->tv_sec, result->tv_nsec
-	     );
-#endif
+	clkSum->tv_sec = clkA->tv_sec + clkB->tv_sec;
+	clkSum->tv_nsec = clkA->tv_nsec + clkB->tv_nsec;
+	clock_norm(clkSum);
+
 	ret = 0;
 exit:
 	return (ret);
@@ -79,32 +78,22 @@ exit:
 
 /*==============================================================================
  * clock_sub()
- * Subtract the values of cb from ca, then save to result.
+ * clkA subtracts clkB = clkDiff
  * Return 0 when success. Return -1 when error.
  *----------------------------------------------------------------------------*/
-int clock_sub (
-	const clockspec * const ca,
-	const clockspec * const cb,
-	clockspec * const result
-	)
+int clock_sub (const clockspec * const clkA, const clockspec * const clkB, clockspec * const clkDiff)
 {
 	int ret = -1;
 
-	if ((ca == NULL) || (cb == NULL) || (result == NULL)) {
+	if ((clkA == NULL) || (clkB == NULL) || (clkDiff == NULL)) {
 		CLKD("parameter error\n");
 		goto exit;
 	}
 
-	result->tv_sec = ca->tv_sec - cb->tv_sec;
-	result->tv_nsec = ca->tv_nsec - cb->tv_nsec;
-	clock_norm(result);
-#if 0
-	CLKD("[%ld:%ld]-[%ld:%ld]=[%ld:%ld]\n",
-	     ca->tv_sec, ca->tv_nsec,
-	     cb->tv_sec, cb->tv_nsec,
-	     result->tv_sec, result->tv_nsec
-	     );
-#endif
+	clkDiff->tv_sec = clkA->tv_sec - clkB->tv_sec;
+	clkDiff->tv_nsec = clkA->tv_nsec - clkB->tv_nsec;
+	clock_norm(clkDiff);
+
 	ret = 0;
 exit:
 	return (ret);
@@ -112,51 +101,40 @@ exit:
 /*----------------------------------------------------------------------------*/
 
 /*==============================================================================
- * clock_compare()
- * Compare the value of ca and cb, then save to result.
+ * clock_cmp()
+ * clkA compares clkB = compare
  * Return 0 when success. Return -1 when error.
  *----------------------------------------------------------------------------*/
-int clock_compare (
-	const clockspec * const ca,
-	const clockspec * const cb,
-	int * const result
-	)
+int clock_cmp (const clockspec * const clkA, const clockspec * const clkB, int * const compare)
 {
 	int ret = -1;
-	clockspec sub;
+	clockspec clkDiff;
 
-	if ((ca == NULL) || (cb == NULL) || (result == NULL)) {
+	if ((clkA == NULL) || (clkB == NULL) || (compare == NULL)) {
 		CLKD("parameter error\n");
 		goto exit;
 	}
 
-	ret = clock_sub(ca, cb, &sub);
-	if (ret != 0) {
+	if (clock_sub(clkA, clkB, &clkDiff) < 0) {
 		goto exit;
 	}
 
-	if (sub.tv_sec > 0) {
-		*result = CLOCK_COMPARE_OLDER;
+	if (clkDiff.tv_sec > 0) {
+		*compare = CLOCK_COMPARE_LATER;
 	}
-	else if (sub.tv_sec < 0) {
-		*result = CLOCK_COMPARE_EARLIER;
+	else if (clkDiff.tv_sec < 0) {
+		*compare = CLOCK_COMPARE_EARLIER;
 	}
-	else if (sub.tv_nsec > 0) {
-		*result = CLOCK_COMPARE_OLDER;
+	else if (clkDiff.tv_nsec > 0) {
+		*compare = CLOCK_COMPARE_LATER;
 	}
-	else if (sub.tv_nsec < 0) {
-		*result = CLOCK_COMPARE_EARLIER;
+	else if (clkDiff.tv_nsec < 0) {
+		*compare = CLOCK_COMPARE_EARLIER;
 	}
 	else {
-		*result = CLOCK_COMPARE_SAME;
+		*compare = CLOCK_COMPARE_SAME;
 	}
-#if 0
-	CLKD("[%ld:%ld] compares [%ld:%ld]=%d\n",
-	     ca->tv_sec, ca->tv_nsec,
-	     cb->tv_sec, cb->tv_nsec,
-	     result
-	     );
-#endif
+
 	ret = 0;
 exit:
 	return (ret);
@@ -164,44 +142,38 @@ exit:
 /*----------------------------------------------------------------------------*/
 
 /*==============================================================================
- * clock_add()
- * Compare the value of ca and cb, then save to result.
- * Return 0 when success. Return -1 when error.
+ * clock_wait()
+ * Wait till clkNow is later than clkOld adds clkWait
+ * Return 0 when timeout. Return -1 when not yet.
  *----------------------------------------------------------------------------*/
-int clock_wait (
-	const clockspec * const cold,
-	const clockspec * const cnow,
-	const clockspec * const wait
-	)
+int clock_wait (const clockspec * const clkNow, const clockspec * const clkOld, const clockspec * const clkWait)
 {
 	int ret = -1;
-	clockspec sub;
+	clockspec clkDiff;
 	int compare;
 
-	if ((cold == NULL) || (cnow == NULL) || (wait == NULL)) {
+	if ((clkOld == NULL) || (clkNow == NULL) || (clkWait == NULL)) {
 		CLKD("parameter error\n");
 		goto exit;
 	}
-	if ((wait->tv_sec <= 0) && (wait->tv_nsec <= 0)) {
-		CLKD("wait=[%ld:%ld] not normalized\n", wait->tv_sec, wait->tv_nsec);
+	if (clock_cmp(clkWait, clkZero, &compare) < 0) {
+		goto exit;
+	}
+	if (compare != CLOCK_COMPARE_LATER) {
+		CLKD("clkWait=[%lds:%09ldns] error\n",
+		     clkWait->tv_sec, clkWait->tv_nsec
+		     );
 		goto exit;
 	}
 
-	ret = clock_sub(cnow, cold, &sub);
-	if (ret != 0) {
+	if (clock_sub(clkNow, clkOld, &clkDiff) < 0) {
 		goto exit;
 	}
-
-	ret = clock_compare(&sub, wait, &compare);
-	if (ret != 0) {
+	if (clock_cmp(clkNow, clkOld, &compare) < 0) {
 		goto exit;
 	}
-
-	if (compare >= CLOCK_COMPARE_SAME) {
+	if ((compare == CLOCK_COMPARE_SAME) || (compare == CLOCK_COMPARE_LATER)) {
 		ret = 0;
-	}
-	else {
-		ret = -1;
 	}
 
 exit:
@@ -211,195 +183,115 @@ exit:
 
 /*==============================================================================
  * clock_show()
- * Show all system clock values.
+ * Print all system clock current values.
  *----------------------------------------------------------------------------*/
 void clock_show (void)
 {
 	clockspec clock;
 	uint8_t i;
 
-	for (i = 0; i < (sizeof (gClockType) / sizeof (CLOCK_TYPE)); i++) {
-		if (clock_gettime(gClockType[i].id, &clock) == 0) {
-			printf("%s [%ld:%09ld]\n", gClockType[i].name, clock.tv_sec, clock.tv_nsec);
+	printf("\n");
+	for (i = 0; i < (sizeof (clock_name) / sizeof (CLOCK_TYPE)); i++) {
+		if (clock_gettime(clock_name[i].id, &clock) == 0) {
+			printf("%s=[%lds:%09ldns]\n",
+			       clock_name[i].name,
+			       clock.tv_sec, clock.tv_nsec
+			       );
 		}
 	}
 }
 /*----------------------------------------------------------------------------*/
 
 #if DEBUG_CLOCK
-void clock_test (void)
+
+static clockspec clkTest[CLOCK_TEST_LENGTH];
+static const clockspec _clkStep = {0, CLOCK_TEST_STEP};
+static const clockspec * clkStep = &_clkStep;
+
+static void clock_test_load (void)
 {
-	int ret;
 	int i;
-	clockspec ca;
-	clockspec cb;
-	clockspec clock;
-	clockspec step;
-	clockspec result;
-	clockspec wait;
-	int compare;
 
-	CLKD("\tstart\n");
+	clkTest[0].tv_sec = -2;
+	clkTest[0].tv_nsec = 0;
+	for (i = 1; i < CLOCK_TEST_LENGTH; i++) {
+		clock_add(&clkTest[i - 1], clkStep, &clkTest[i]);
+	}
+#if 0
+	printf("\nclock test data:\n");
+	printf("clkStep=[%lds:%09ldns]\n",
+	       clkStep->tv_sec, clkStep->tv_nsec
+	       );
+	for (i = 0; i < CLOCK_TEST_LENGTH; i++) {
+		printf("clkTest[%02d]=[%lds:%09ldns]\n",
+		       i, clkTest[i].tv_sec, clkTest[i].tv_nsec
+		       );
+	}
+	printf("\n");
+#endif
+}
 
-	clock_show();
+static void clock_add_test (void)
+{
+	int i;
+	clockspec clkSum;
 
-	CLKD("\tadd test\n");
-	ca.tv_sec = 1;
-	ca.tv_nsec = NSEC_PER_SEC / 10;
-	cb.tv_sec = -2;
-	cb.tv_nsec = -(NSEC_PER_SEC / 5);
-	step.tv_sec = 0;
-	step.tv_nsec = NSEC_PER_SEC / 2;
-	for (i = 0; i < 8; i++) {
-		ret = clock_add(&cb, &step, &result);
-		if (ret != 0) {
-			continue;
-		}
-		cb = result;
-
-		ret = clock_add(&ca, &cb, &result);
-		if (ret == 0) {
-			CLKD("[%ld:%ld]+[%ld:%ld]=[%ld:%ld]\n",
-			     ca.tv_sec, ca.tv_nsec, cb.tv_sec, cb.tv_nsec, result.tv_sec, result.tv_nsec);
+	printf("\nclock add test\n");
+	for (i = 0; i < CLOCK_TEST_LENGTH; i++) {
+		if (clock_add(&clkTest[1], &clkTest[i], &clkSum) == 0) {
+			printf("[%lds:%09ldns]+[%lds:%09ldns]=[%lds:%09ldns]\n",
+			       clkTest[1].tv_sec, clkTest[1].tv_nsec,
+			       clkTest[i].tv_sec, clkTest[i].tv_nsec,
+			       clkSum.tv_sec, clkSum.tv_nsec
+			       );
 		}
 	}
-
-	ca.tv_sec = -1;
-	ca.tv_nsec = -(NSEC_PER_SEC / 10);
-	cb.tv_sec = -2;
-	cb.tv_nsec = -(NSEC_PER_SEC / 5);
-	step.tv_sec = 0;
-	step.tv_nsec = NSEC_PER_SEC / 2;
-	for (i = 0; i < 8; i++) {
-		ret = clock_add(&cb, &step, &result);
-		if (ret != 0) {
-			continue;
+	for (i = 0; i < CLOCK_TEST_LENGTH; i++) {
+		if (clock_add(&clkTest[CLOCK_TEST_LENGTH - 2], &clkTest[i], &clkSum) == 0) {
+			printf("[%lds:%09ldns]+[%lds:%09ldns]=[%lds:%09ldns]\n",
+			       clkTest[CLOCK_TEST_LENGTH - 2].tv_sec, clkTest[CLOCK_TEST_LENGTH - 2].tv_nsec,
+			       clkTest[i].tv_sec, clkTest[i].tv_nsec,
+			       clkSum.tv_sec, clkSum.tv_nsec
+			       );
 		}
-		cb = result;
-
-		ret = clock_add(&ca, &cb, &result);
-		if (ret == 0) {
-			CLKD("[%ld:%ld]+[%ld:%ld]=[%ld:%ld]\n",
-			     ca.tv_sec, ca.tv_nsec, cb.tv_sec, cb.tv_nsec, result.tv_sec, result.tv_nsec);
-		}
-	}
-
-	CLKD("\tsub test\n");
-	ca.tv_sec = 1;
-	ca.tv_nsec = NSEC_PER_SEC / 10;
-	cb.tv_sec = -2;
-	cb.tv_nsec = -(NSEC_PER_SEC / 5);
-	step.tv_sec = 0;
-	step.tv_nsec = NSEC_PER_SEC / 2;
-	for (i = 0; i < 8; i++) {
-		ret = clock_add(&cb, &step, &result);
-		if (ret != 0) {
-			continue;
-		}
-		cb = result;
-
-		ret = clock_sub(&ca, &cb, &result);
-		if (ret == 0) {
-			CLKD("[%ld:%ld]-[%ld:%ld]=[%ld:%ld]\n",
-			     ca.tv_sec, ca.tv_nsec, cb.tv_sec, cb.tv_nsec, result.tv_sec, result.tv_nsec);
-		}
-	}
-
-	ca.tv_sec = -1;
-	ca.tv_nsec = -(NSEC_PER_SEC / 10);
-	cb.tv_sec = -2;
-	cb.tv_nsec = -(NSEC_PER_SEC / 5);
-	step.tv_sec = 0;
-	step.tv_nsec = NSEC_PER_SEC / 2;
-	for (i = 0; i < 8; i++) {
-		ret = clock_add(&cb, &step, &result);
-		if (ret != 0) {
-			continue;
-		}
-		cb = result;
-
-		ret = clock_sub(&ca, &cb, &result);
-		if (ret == 0) {
-			CLKD("[%ld:%ld]-[%ld:%ld]=[%ld:%ld]\n",
-			     ca.tv_sec, ca.tv_nsec, cb.tv_sec, cb.tv_nsec, result.tv_sec, result.tv_nsec);
-		}
-	}
-
-	CLKD("\tcompare test\n");
-	ca.tv_sec = 1;
-	ca.tv_nsec = NSEC_PER_SEC / 10;
-	cb.tv_sec = -1;
-	cb.tv_nsec = -(NSEC_PER_SEC / 2);
-	step.tv_sec = 0;
-	step.tv_nsec = NSEC_PER_SEC / 2;
-	for (i = 0; i < 10; i++) {
-		ret = clock_add(&cb, &step, &result);
-		if (ret != 0) {
-			continue;
-		}
-		cb = result;
-
-		ret = clock_compare(&ca, &cb, &compare);
-		if (ret == 0) {
-			CLKD("[%ld:%ld] compares [%ld:%ld]=%d\n",
-			     ca.tv_sec, ca.tv_nsec, cb.tv_sec, cb.tv_nsec, compare);
-		}
-	}
-
-	ca.tv_sec	= 0;
-	ca.tv_nsec	= -(NSEC_PER_SEC / 10);
-	cb.tv_sec	= -1;
-	cb.tv_nsec	= -(NSEC_PER_SEC / 2);
-	step.tv_sec	= 0;
-	step.tv_nsec	= NSEC_PER_SEC / 2;
-	for (i = 0; i < 10; i++) {
-		ret = clock_add(&cb, &step, &result);
-		if (ret != 0) {
-			continue;
-		}
-		cb = result;
-
-		ret = clock_compare(&ca, &cb, &compare);
-		if (ret == 0) {
-			CLKD("[%ld:%ld] compares [%ld:%ld]=%d\n",
-			     ca.tv_sec, ca.tv_nsec, cb.tv_sec, cb.tv_nsec, compare);
-		}
-	}
-
-	CLKD("\twait test\n");
-	wait.tv_sec = 0;
-	wait.tv_nsec = NSEC_PER_SEC / 5;
-	step.tv_sec = 0;
-	step.tv_nsec = NSEC_PER_SEC / 5;
-	for (i = 0; i < 10; i++) {
-		ret = clock_add(&wait, &step, &result);
-		if (ret != 0) {
-			continue;
-		}
-		wait = result;
-		CLKD("wait\t[%ld:%ld]\n", wait.tv_sec, wait.tv_nsec);
-
-		ret = clock_gettime(CLOCK_ID_DEFAULT, &ca);
-		if (ret != 0) {
-			continue;
-		}
-
-
-		while (1) {
-			ret = clock_gettime(CLOCK_ID_DEFAULT, &cb);
-			if (ret != 0) {
-				continue;
-			}
-
-			if (clock_wait(&ca, &cb, &wait) == 0) {
-				break;
-			}
-		}
-		CLKD("begin\t[%ld:%ld]\n", ca.tv_sec, ca.tv_nsec);
-		CLKD("end\t[%ld:%ld]\n", cb.tv_sec, cb.tv_nsec);
 	}
 }
+
+static void clock_sub_test (void)
+{
+
+}
+
+static void clock_cmp_test (void)
+{
+
+}
+
+static void clock_wait_test (void)
+{
+
+}
+
+
+int clock_test (void)
+{
+	clock_test_load();
+
+	printf("clock test start\n");
+	clock_show();
+	clock_add_test();
+
+	return (0);
+
+	clock_sub_test();
+	clock_cmp_test();
+	clock_wait_test();
+
+	printf("clock test done\n");
+
+	return (0);
+}
 #else
-void clock_test (void) {}
+int clock_test (void) { return (0);}
 #endif
 
