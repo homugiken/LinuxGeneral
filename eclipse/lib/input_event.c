@@ -739,7 +739,7 @@ static char * event_name[EV_MAX + 1] =
 #define KEYEV_MAX					0x03
 #define KEYEV_CNT					(KEYEV_MAX + 1)
 
-static char * keyev_name[KEYEV_MAX + 1] =
+static char * key_status[KEYEV_MAX + 1] =
 {
 	[0 ... KEYEV_MAX] = NULL,
 	NAME_INITIALIZER(KEYEV_RELEASED),
@@ -752,28 +752,35 @@ static char * keyev_name[KEYEV_MAX + 1] =
  * Open input event.
  * Return 0 when success. Return -1 when error.
  *----------------------------------------------------------------------------*/
-int input_event_open (const char * const name, int * const fd)
+int input_event_open (INPUT_EVENT_ENTITY * const input, const char * const name)
 {
 	int ret = -1;
-	char path[INPUT_EVENT_PATH_LENGTH];
+	char * path;
 
-	IPEVD_NULL_ARGUMENT(fd);
+	IPEVD_NULL_ARGUMENT(input);
 
-	if (name != NULL) {
-		IPEVD_NULL_RETURN(strcpy(path, name), strcpy);
-	}
-	else {
+	path = input->path;
+
+	if (name == NULL) {
 		printf("\nPlease enter input event path: ");
 		ret = scanf("%128s", path);
 		IPEVD_NEGATIVE_RETURN(ret, scanf);
 	}
+	else if ((input->fd >= 0) && (strcmp(path, name) == 0)) {
+		ret = input->fd;
+		IPEVD("%s already opened fd=%d\n", path, input->fd);
+		goto exit;
+	}
+	else {
+		IPEVD_NULL_RETURN(strcpy(path, name), strcpy);
+	}
 
-	IPEVD("try to open: %s\n", path);
+	IPEVD("try to open %s\n", path);
 	ret = open(path, O_RDONLY);
 	IPEVD_NEGATIVE_RETURN(ret, open);
 
-	*fd = ret;
-	IPEVD("open %s fd=%d\n", path, *fd);
+	input->fd = ret;
+	IPEVD("open %s fd=%d\n", path, input->fd);
 
 exit:
 	return (ret);
@@ -785,15 +792,19 @@ exit:
  * Close input event.
  * Return 0 when success. Return -1 when error.
  *----------------------------------------------------------------------------*/
-int input_event_close (const int fd)
+int input_event_close (INPUT_EVENT_ENTITY * const input)
 {
 	int ret = -1;
 
-	IPEVD_NEGATIVE_ARGUMENT(fd);
+	IPEVD_NULL_ARGUMENT(input);
+	IPEVD_NEGATIVE_ARGUMENT(input->fd);
 
-	ret = close(fd);
+	ret = close(input->fd);
 	IPEVD_NEGATIVE_RETURN(ret, close);
-	IPEVD("close fd=%d\n", fd);
+
+	printf("close %s fd=%d\n", input->path, input->fd);
+	memset(input, 0, sizeof (INPUT_EVENT_ENTITY));
+	input->fd = -1;
 
 exit:
 	return (ret);
@@ -805,14 +816,14 @@ exit:
  * Read input event data.
  * Return number of bytes read. Return -1 when error.
  *----------------------------------------------------------------------------*/
-int input_event_read (const int fd, inputevent * const input)
+int input_event_read (INPUT_EVENT_ENTITY * const input)
 {
 	int ret = -1;
 
 	IPEVD_NULL_ARGUMENT(input);
-	IPEVD_NEGATIVE_ARGUMENT(fd);
+	IPEVD_NEGATIVE_ARGUMENT(input->fd);
 
-	ret = read(fd, input, sizeof (inputevent));
+	ret = read(input->fd, &input->event, sizeof (struct input_event));
 	IPEVD_NEGATIVE_RETURN(ret, read);
 
 exit:
@@ -834,16 +845,21 @@ static __inline__ int test_bit(int nr, BITFIELD * addr)
  * input_event_device_dump()
  * Dump input event device information.
  *----------------------------------------------------------------------------*/
-void input_event_device_dump (const int fd)
+void input_event_device_dump (INPUT_EVENT_ENTITY * const input)
 {
 	struct input_id id;
 	BITFIELD bits[32];
-	char buf[INPUT_EVENT_DUMP_LENGTH];
 	int bit;
 	int ret;
 	int version;
+	int fd;
+	char * info;
 
-	IPEVD_NEGATIVE_ARGUMENT(fd);
+	IPEVD_NULL_ARGUMENT(input);
+	IPEVD_NEGATIVE_ARGUMENT(input->fd);
+
+	fd = input->fd;
+	info = input->info;
 
 	printf("\nInput device information:\n");
 	if (ioctl(fd, EVIOCGVERSION, &version) > 0) {
@@ -853,25 +869,26 @@ void input_event_device_dump (const int fd)
 		printf("EVIOCGID:\tbustype=0x%04x vendor=0x%04x product=0x%04x version=0x%04x\n",
 		       id.bustype, id.vendor, id.product, id.version);
 	}
-	if (ioctl(fd, EVIOCGNAME(sizeof (buf)), buf) > 0) {
-		printf("EVIOCGNAME:\t%s\n", buf);
+	if (ioctl(fd, EVIOCGNAME(sizeof (info)), info) > 0) {
+		printf("EVIOCGNAME:\t%s\n", info);
 	}
-	if (ioctl(fd, EVIOCGPHYS(sizeof (buf)), buf) > 0) {
-		printf("EVIOCGPHYS:\t%s\n", buf);
+	if (ioctl(fd, EVIOCGPHYS(sizeof (info)), info) > 0) {
+		printf("EVIOCGPHYS:\t%s\n", info);
 	}
-	if (ioctl(fd, EVIOCGUNIQ(sizeof (buf)), buf) > 0) {
-		printf("EVIOCGUNIQ:\t%s\n", buf);
+	if (ioctl(fd, EVIOCGUNIQ(sizeof (info)), info) > 0) {
+		printf("EVIOCGUNIQ:\t%s\n", info);
 	}
-	if (ioctl(fd, EVIOCGMTSLOTS(sizeof (buf)), buf) > 0) {
-		printf("EVIOCGMTSLOTS:\t%s\n", buf);
+	if (ioctl(fd, EVIOCGMTSLOTS(sizeof (info)), info) > 0) {
+		printf("EVIOCGMTSLOTS:\t%s\n", info);
 	}
 	ret = ioctl(fd, EVIOCGBIT(0, sizeof (bits)), bits);
-	if (ret >= 0) {
-		printf("EVIOCGBIT:\n");
-		for (bit = 0; (bit < (ret * 8)) && (bit < EV_MAX); bit++) {
-			if (test_bit(bit, bits)) {
-				printf("\t\t0x%02X %s\n", bit, event_name[bit]);
-			}
+	if (ret < 0) {
+		goto exit;
+	}
+	printf("EVIOCGBIT:\n");
+	for (bit = 0; (bit < (ret * 8)) && (bit < EV_MAX); bit++) {
+		if ((test_bit(bit, bits)) && (event_name[bit] != NULL)) {
+			printf("\t\t0x%02X %s\n", bit, event_name[bit]);
 		}
 	}
 
@@ -885,36 +902,35 @@ exit:
  * Print general event information.
  * Return length of info. Return -1 when error.
  *----------------------------------------------------------------------------*/
-static int general_event_info (const inputevent * const input, char * const info)
+static int general_event_info (INPUT_EVENT_ENTITY * const input)
 {
 	int ret = -1;
+	uint16_t type;
+	uint16_t code;
+	int32_t value;
+	char * info;
 
 	IPEVD_NULL_ARGUMENT(input);
-	IPEVD_NULL_ARGUMENT(info);
+	IPEVD_NEGATIVE_ARGUMENT(input->fd);
 
-	if (event_code_name[input->type][input->code] != NULL) {
+	type = input->event.type;
+	code = input->event.code;
+	value = input->event.value;
+	info  = input->info;
+
+	if (event_code_name[type][code] != NULL) {
 		ret = sprintf(info, "%s value=%u|0x%X",
-		        event_code_name[input->type][input->code],
-		        input->value, input->value
-		        );
+		              event_code_name[type][code], value, value);
 	}
-	else if (event_name[input->type] != NULL) {
+	else if (event_name[type] != NULL) {
 		ret = sprintf(info, "%s code=%u|0x%X value=%u|0x%X",
-		        event_name[input->type],
-		        input->code, input->code,
-		        input->value, input->value
-		        );
+		              event_name[type], code, code, value, value);
 	}
 	else {
 		ret = sprintf(info, "type=%u|0x%X code=%u|0x%X value=%u|0x%X",
-		        input->type, input->type,
-		        input->code, input->code,
-		        input->value, input->value
-		        );
+		              type, type, code, code, value, value);
 	}
 	IPEVD_NEGATIVE_RETURN(ret, sprintf);
-
-	ret = strlen(info);
 
 exit:
 	return (ret);
@@ -926,30 +942,36 @@ exit:
  * Print key event information.
  * Return length of info. Return -1 when error.
  *----------------------------------------------------------------------------*/
-static int key_event_info (const inputevent * const input, char * const info)
+static int key_event_info (INPUT_EVENT_ENTITY * const input)
 {
 	int ret = -1;
+	uint16_t type;
+	int32_t value;
 
 	IPEVD_NULL_ARGUMENT(input);
-	IPEVD_NULL_ARGUMENT(info);
-	if (input->type != EV_KEY) {
-		IPEVD("input->type=%u|0x%X\n", input->type, input->type);
+	IPEVD_NEGATIVE_ARGUMENT(input->fd);
+
+	type = input->event.type;
+	value = input->event.value;
+
+	if (type != EV_KEY) {
+		IPEVD("type=%u|0x%X\n", type, type);
 		goto exit;
 	}
 
-	ret = general_event_info(input, info);
+	ret = general_event_info(input);
 	IPEVD_NEGATIVE_RETURN(ret, general_event_info);
 
 	ret = -1;
-	IPEVD_NULL_RETURN(strcat(info, " "), strcat);
-	if ((input->value >= 0) && (input->value < KEYEV_MAX) && (keyev_name[input->value] != NULL)) {
-		IPEVD_NULL_RETURN(strcat(info, keyev_name[input->value]), strcat);
+	if ((value >= 0) && (value < KEYEV_MAX) && (key_status[value] != NULL)) {
+		IPEVD_NULL_RETURN(strcat(input->info, " "), strcat);
+		IPEVD_NULL_RETURN(strcat(input->info, key_status[value]), strcat);
 	}
 	else {
-		IPEVD_NULL_RETURN(strcat(info, "unknown"), strcat);
+		IPEVD_NULL_RETURN(strcat(input->info, " unknown"), strcat);
 	}
 
-	ret = strlen(info);
+	ret = strlen(input->info);
 
 exit:
 	return (ret);
@@ -960,18 +982,23 @@ exit:
  * input_event_dump()
  * Dump input event information.
  *----------------------------------------------------------------------------*/
-void input_event_dump (const inputevent * const input)
+void input_event_dump (INPUT_EVENT_ENTITY * const input)
 {
-	char info[INPUT_EVENT_DUMP_LENGTH];
 	int ret = -1;
+	uint16_t type;
+	struct timeval * time;
 
 	IPEVD_NULL_ARGUMENT(input);
+	IPEVD_NEGATIVE_ARGUMENT(input->fd);
 
-	switch (input->type) {
+	type = input->event.type;
+	time = &input->event.time;
+
+	switch (type) {
 	case (EV_SYN):
 		break;
 	case (EV_KEY):
-		ret = key_event_info(input, info);
+		ret = key_event_info(input);
 		break;
 	case (EV_REL):
 		// break;
@@ -994,14 +1021,14 @@ void input_event_dump (const inputevent * const input)
 	case (EV_FF_STATUS):
 		// break;
 	default:
-		ret = general_event_info(input, info);
+		ret = general_event_info(input);
 		break;
 	}
 	if (ret < 0) {
 		goto exit;
 	}
 
-	printf("\t[%lds:%06ldus]\t{%s}\n", input->time.tv_sec, input->time.tv_usec, info);
+	printf("\t[%lds:%06ldus]\t{%s}\n", time->tv_sec, time->tv_usec, input->info);
 
 exit:
 	return;
@@ -1015,26 +1042,26 @@ exit:
 int input_event_test (void)
 {
 	int ret = -1;
-	int fd = -1;
-	inputevent _input;
-	inputevent * input = &_input;
+	long timeout = INPUT_EVENT_TEST_TIMEOUT;
 	clkspec _clkStart;
 	clkspec * clkStart = &_clkStart;
-	long timeout = INPUT_EVENT_TEST_TIMEOUT;
+	INPUT_EVENT_ENTITY _input;
+	INPUT_EVENT_ENTITY * input = &_input;
 
 	printf("\nInput event test:\n");
 	ret = system("ls -lR /dev/input/");
 
-	ret = input_event_open(NULL, &fd);
+	ret = input_event_open(input, NULL);
 	IPEVD_NEGATIVE_RETURN(ret, input_event_open);
-	input_event_device_dump(fd);
+
+	input_event_device_dump(input);
 
 	ret = clock_gettime(CLOCK_ID_DEFAULT, clkStart);
 	IPEVD_NEGATIVE_RETURN(ret, clock_gettime);
 	printf("\nTest ends in %lds...\n", timeout);
 
 	while (1) {
-		ret = input_event_read(fd, input);
+		ret = input_event_read(input);
 		if (ret > 0) {
 			input_event_dump(input);
 		}
@@ -1046,8 +1073,8 @@ int input_event_test (void)
 	}
 
 exit:
-	if (fd >= 0) {
-		ret = input_event_close(fd);
+	if (input->fd >= 0) {
+		ret = input_event_close(input);
 	}
 
 	return (ret);
