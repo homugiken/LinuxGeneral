@@ -13,30 +13,33 @@
 int serial_tty_open (SERIAL_TTY_ENTITY * const serial, const char * const name)
 {
 	int ret = -1;
+	char * path;
 
 	SRLD_NULL_ARGUMENT(serial);
 
+	path = serial->path;
+
 	if (name == NULL) {
 		printf("\nPlease enter serial tty path: ");
-		ret = scanf("%128s", serial->path);
+		ret = scanf("%128s", path);
 		SRLD_NEGATIVE_RETURN(ret, scanf);
 	}
-	else if ((serial->fd >= 0) && (strcmp(serial->path, name) == 0)) {
+	else if ((serial->fd >= 0) && (strcmp(path, name) == 0)) {
 		ret = serial->fd;
-		SRLD("%s already opened fd=%d\n", serial->path, serial->fd);
+		SRLD("%s already opened fd=%d\n", path, serial->fd);
 		goto exit;
 	}
 	else {
-		SRLD_NULL_RETURN(strcpy(serial->path, name), strcpy);
+		SRLD_NULL_RETURN(strcpy(path, name), strcpy);
 	}
 
-	SRLD("try to open %s\n", serial->path);
-	ret = open(serial->path, O_RDWR | O_NOCTTY | O_NDELAY);
+	SRLD("try to open %s\n", path);
+	ret = open(path, O_RDWR | O_NOCTTY | O_NDELAY);
 	SRLD_NEGATIVE_RETURN(ret, open);
 
 	if (isatty(ret) == 1) {
 		serial->fd = ret;
-		printf("open %s fd=%d\n", serial->path, serial->fd);
+		printf("open %s fd=%d\n", path, serial->fd);
 	}
 	else {
 		SRLD_NEGATIVE_RETURN(close(ret), close);

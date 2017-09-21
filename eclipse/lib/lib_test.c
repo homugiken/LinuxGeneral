@@ -5,6 +5,7 @@
 #include "input_event.h"
 #include "clock_time.h"
 #include "serial_tty.h"
+#include "i2c/i2c_bus.h"
 
 #define LIB_NULL_ARGUMENT(ARG)				CHECK_NULL_ARGUMENT(ARG, LIBDBG)
 #define LIB_NEGATIVE_ARGUMENT(ARG)			CHECK_NEGATIVE_ARGUMENT(ARG, LIBDBG)
@@ -15,6 +16,7 @@
 #define LIB_TEST_CLOCK_TIME				0x00
 #define LIB_TEST_INPUT_EVENT				0x01
 #define LIB_TEST_SERIAL_TTY				0x02
+#define LIB_TEST_I2C_BUS				0x03
 #define LIB_TEST_MAX					0x0F
 #define LIB_TEST_CNT					(LIB_TEST_MAX + 1)
 
@@ -23,7 +25,8 @@ static char * lib_test_name[LIB_TEST_MAX + 1] =
 	[0 ... LIB_TEST_MAX] = NULL,
 	NAME_INITIALIZER(LIB_TEST_CLOCK_TIME),
 	NAME_INITIALIZER(LIB_TEST_INPUT_EVENT),
-	NAME_INITIALIZER(LIB_TEST_SERIAL_TTY)
+	NAME_INITIALIZER(LIB_TEST_SERIAL_TTY),
+	NAME_INITIALIZER(LIB_TEST_I2C_BUS)
 };
 
 typedef int (* general_test)(void);
@@ -32,7 +35,8 @@ static general_test lib_test_func[LIB_TEST_MAX + 1] =
 	[0 ... LIB_TEST_MAX] = NULL,
 	[LIB_TEST_CLOCK_TIME] = clock_test,
 	[LIB_TEST_INPUT_EVENT] = input_event_test,
-	[LIB_TEST_SERIAL_TTY] = serial_tty_test
+	[LIB_TEST_SERIAL_TTY] = serial_tty_test,
+	[LIB_TEST_I2C_BUS] = i2c_bus_test
 };
 
 /*==============================================================================
@@ -62,7 +66,7 @@ int lib_test (void)
 
 	printf("\t[0x%02X]\t%s selected\n", i, lib_test_name[i]);
 	ret = lib_test_func[i]();
-	LIB_NEGATIVE_RETURN(ret, scanf);
+	LIB_NEGATIVE_RETURN(ret, lib_test_func);
 
 
 

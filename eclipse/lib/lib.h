@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <linux/input-event-codes.h>
 #include <linux/input.h>
+#include <linux/i2c-dev.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
