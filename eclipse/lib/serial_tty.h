@@ -23,6 +23,8 @@
 
 #define SERIAL_TTY_PATH_LENGTH				128
 #define SERIAL_TTY_BUFFER_LENGTH			1024
+#define SERIAL_TTY_TEST_TIMEOUT				10
+#define SERIAL_TTY_TEST_STRING				"tx from serial_tty_test()"
 #define SERIAL_TTY_SPEED_DEFAULT			B115200
 
 
@@ -31,9 +33,17 @@ typedef struct SERIAL_TTY_ENTITY {
 	char path[SERIAL_TTY_PATH_LENGTH];
 	struct termios cfg;
 	struct termios cfg_old;
-	uint8_t buf[SERIAL_TTY_BUFFER_LENGTH];
+	int count;
+	char buf[SERIAL_TTY_BUFFER_LENGTH];
 } SERIAL_TTY_ENTITY;
 
+int serial_tty_open (SERIAL_TTY_ENTITY * const serial, const char * const name);
+int serial_tty_close (SERIAL_TTY_ENTITY * const serial);
+int serial_tty_configure (SERIAL_TTY_ENTITY * const serial, const struct termios * const new);
+int serial_tty_set_speed (SERIAL_TTY_ENTITY * const serial, unsigned int speed);
+int serial_tty_read (SERIAL_TTY_ENTITY * const serial);
+int serial_tty_write (SERIAL_TTY_ENTITY * const serial);
+void serial_tty_dump_configuration (SERIAL_TTY_ENTITY * const serial);
 int serial_tty_test (void);
 
 #endif /* SERIAL_TTY_H_ */
